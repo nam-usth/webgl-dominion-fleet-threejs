@@ -135,7 +135,6 @@ const textureLoader = new THREE.TextureLoader( manager )
 // Model loader
 const objLoader = new OBJLoader( manager )
 
-
 /**
  * Material
  */
@@ -146,7 +145,6 @@ const cloak = new THREE.MeshPhongMaterial({
     refractionRatio: 0.985,
     reflectivity: 0.9
 })
-
 
 const setCloaking = obj => {
     obj.traverse(
@@ -215,8 +213,7 @@ groupCloak.position.copy(groupDecloak.position)
 
 fleetFolder.add(groupDecloak.position, 'y').min(1).max(3).step(0.1).name('elevation')
 fleetFolder.add(groupDecloak, 'visible').name('decloak')
-shadowFolder.add(groupDecloak, 'castShadow')
-
+//shadowFolder.add(groupDecloak, 'castShadow')
 
 // Add the group to the scene
 scene.add(groupDecloak)
@@ -263,6 +260,9 @@ const directionalLightCameraHelper = new THREE.CameraHelper(directionalLight.sha
 directionalLightCameraHelper.visible = false
 scene.add(directionalLightCameraHelper)
 
+//const axesHelper = new THREE.AxesHelper( 50 );
+//scene.add( axesHelper );
+
 /**
  * Sizes
  */
@@ -299,6 +299,31 @@ const controls = new OrbitControls(camera, canvas)
 controls.target.set(0, 0.75, 0)
 controls.enableDamping = true
 
+/** 
+ * Sounds
+ */
+
+ const listener = new THREE.AudioListener()
+ camera.add( listener )
+ 
+ const sound = new THREE.Audio( listener )
+ 
+ const AudioLoader = new THREE.AudioLoader()
+ AudioLoader.load('/sounds/Terran One - Glenn Stafford [FLAC Lossless] - Awesome Part.flac',
+     (buffer) => {
+         sound.setBuffer( buffer );
+         sound.setLoop( true );
+         sound.setVolume( 0.25 );
+         sound.play();
+     }
+ )
+
+/** 
+ * Resetter
+ */ 
+
+// TODO
+
 /**
  * Renderer
  */
@@ -313,8 +338,17 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 /**
  * Animate
  */
+const degToRad = deg => deg * Math.PI / 180
+
+const turnAroundDirection = direction => 
+    (parseFloat(direction) > 0) ? 1 : -1
+
 const clock = new THREE.Clock()
 let previousTime = 0
+
+const speed = 0.25
+
+const patrolMatrix = new THREE.Matrix4()
 
 const tick = () =>
 {
@@ -325,8 +359,43 @@ const tick = () =>
     // Update controls
     controls.update()
 
+    // Speed
+    const fleetSpeed = elapsedTime * speed
+
+    // Patrol
+    /* [Comment] 
+     * Why is 0.1? It is a carefully chosen threshold to control both the travel distance and fleet speed
+     */
+    patrolMatrix.makeTranslation(
+        0, 
+        0, 
+        0.1 * turnAroundDirection(Math.cos(fleetSpeed)) * Math.sin(fleetSpeed)
+    )
+
+    groupDecloak.applyMatrix4(patrolMatrix)
+
+    // Turnaround animation
+    /* [Comment]
+     * We need our fleet to turnaround every half-period --> fleetSpeed*2
+     * Why are also 10 and 9? There are carefully chosen thresholds to deal with the floating point precision
+     */
+
+    const alpha = Math.max(
+        0, 
+        Math.cos(turnAroundDirection(Math.cos(fleetSpeed*2)) * Math.sin(fleetSpeed*2)) * 10 - 9
+    )
+
+    /* [Comment]
+     * Why is 1.0078 degrees? Just a random hard-coded value 
+     * (there will be a mathematical solution for this)
+     * but let's leave it for now
+     */
+
+    groupDecloak.rotateY(alpha*degToRad(1.0078))
+    
     // Copy the fleet position at every tick
     groupCloak.position.copy(groupDecloak.position)
+    groupCloak.quaternion.copy(groupDecloak.quaternion)
 
     // Render
     renderer.render(scene, camera)
