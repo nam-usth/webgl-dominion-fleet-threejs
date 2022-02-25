@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'dat.gui'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import Stats from 'stats.js'
 //import VertexShader from './shaders/vertex.glsl'
 //import FragmentShader from './shaders/fragment.glsl'
 
@@ -15,6 +16,11 @@ const gui = new dat.GUI()
 const fleetFolder = gui.addFolder('Fleet')
 const lightFolder = gui.addFolder('Light')
 const shadowFolder = gui.addFolder('Shadow')
+
+// Stats
+const stats = new Stats()
+stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild(stats.dom)
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
@@ -291,12 +297,12 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(-5, 10, 10)
+camera.position.set(-5, 5, -5)
 scene.add(camera)
 
 // Controls
 const controls = new OrbitControls(camera, canvas)
-controls.target.set(0, 0.75, 0)
+controls.target.set(5, 2.5, 20)
 controls.enableDamping = true
 
 /** 
@@ -352,6 +358,8 @@ const patrolMatrix = new THREE.Matrix4()
 
 const tick = () =>
 {
+    stats.begin()
+
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
     previousTime = elapsedTime
@@ -391,8 +399,22 @@ const tick = () =>
      * but let's leave it for now
      */
 
-    groupDecloak.rotateY(alpha*degToRad(1.0078))
-    
+    groupDecloak.traverse(
+        (child) => {
+            if (child instanceof THREE.Group && child !== groupDecloak) {
+                child.rotateY(alpha*degToRad(1.0078))
+            }
+        }
+    )
+
+    groupCloak.traverse(
+        (child) => {
+            if (child instanceof THREE.Group && child !== groupDecloak) {
+                child.rotateY(alpha*degToRad(1.0078))
+            }
+        }
+    )
+
     // Copy the fleet position at every tick
     groupCloak.position.copy(groupDecloak.position)
     groupCloak.quaternion.copy(groupDecloak.quaternion)
@@ -402,6 +424,8 @@ const tick = () =>
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
+
+    stats.end()
 }
 
 tick()
