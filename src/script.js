@@ -309,20 +309,20 @@ controls.enableDamping = true
  * Sounds
  */
 
- const listener = new THREE.AudioListener()
- camera.add( listener )
- 
- const sound = new THREE.Audio( listener )
- 
- const AudioLoader = new THREE.AudioLoader()
- AudioLoader.load('/sounds/Terran One - Glenn Stafford [FLAC Lossless] - Awesome Part.flac',
-     (buffer) => {
-         sound.setBuffer( buffer );
-         sound.setLoop( true );
-         sound.setVolume( 0.25 );
-         sound.play();
-     }
- )
+const listener = new THREE.AudioListener()
+camera.add( listener )
+
+const sound = new THREE.Audio( listener )
+
+const AudioLoader = new THREE.AudioLoader()
+AudioLoader.load('/sounds/Terran One - Glenn Stafford [FLAC Lossless] - Awesome Part.flac',
+    (buffer) => {
+        sound.setBuffer( buffer );
+        sound.setLoop( true );
+        sound.setVolume( 0.25 );
+        sound.play();
+    }
+)
 
 /** 
  * Resetter
@@ -393,16 +393,12 @@ const tick = () =>
         Math.cos(turnAroundDirection(Math.cos(fleetSpeed*2)) * Math.sin(fleetSpeed*2)) * 10 - 9
     )
 
-    /* [Comment]
-     * Why is 1.0078 degrees? Just a random hard-coded value 
-     * (there will be a mathematical solution for this)
-     * but let's leave it for now
-     */
-
     groupDecloak.traverse(
         (child) => {
             if (child instanceof THREE.Group && child !== groupDecloak) {
-                child.rotateY(alpha*degToRad(1.0078))
+                if (alpha !== 0) {
+                    child.rotateY(alpha*degToRad(2/(3*alpha)))    
+                }
             }
         }
     )
@@ -410,7 +406,9 @@ const tick = () =>
     groupCloak.traverse(
         (child) => {
             if (child instanceof THREE.Group && child !== groupDecloak) {
-                child.rotateY(alpha*degToRad(1.0078))
+                if (alpha !== 0) {
+                    child.rotateY(alpha*degToRad(2/(3*alpha)))    
+                }
             }
         }
     )
